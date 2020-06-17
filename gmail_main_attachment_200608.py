@@ -7,15 +7,6 @@ from oauth2client.file import Storage
 import base64,os
 from pprint import pprint
 
-"""同フォルダ内のフォルダ名をリストで取得"""
-def get_dir_name():
-    path = "./"
-    files = os.listdir(path)
-    dir_name = [f for f in files if os.path.isdir(os.path.join(path, f))]
-    print(dir_name)
-    return dir_name
-
-
 # Gmail権限のスコープを指定
 SCOPES = 'https://mail.google.com/'
 # 認証ファイル
@@ -52,9 +43,38 @@ pprint(msg_list)
 msg_ID_list = msg_list['messages']
 pprint(msg_ID_list)
 
-"""添付ファイルを取得"""
+def get_dir_name():
+    """同フォルダ内のフォルダ名をリストで取得"""
+    path = "./"
+    files = os.listdir(path)
+    dir_name = [f for f in files if os.path.isdir(os.path.join(path, f))]
+    print(dir_name)
+    return dir_name
+get_dir_name()
+
+
+def LabelsDict(service, user_id):
+    """ユーザーのメールボックスから対象となるlabelIDとラベル名の辞書を作成する"""
+    """{'labelID':'ラベル名'}"""
+    labels_dict = {}
+    try:
+        label_objects = service.users().labels().list(userId=user_id).execute()
+        labels = label_objects['labels']
+        print("以下labels")
+        pprint(labels)
+        """対象となるlabelの選定"""
+        for label in labels:
+            if 'インバータ（csvファイル）/' in label['name']:
+                labels_dict[label['id'].replace("Label_","") ] = label['name'].replace('インバータ（csvファイル）/','')
+        pprint(labels_dict)
+        return labels_dict
+    except Exception as e: 
+        print("labels_dict取得する上で『{}』のエラー!".format(e))
+        pass
+LabelsDict(service,'me')
+
 def GetAttachments(msg_ID_list):
-    # dict_of_attachment_ID= {}
+    """添付ファイルを取得"""
     for msg in msg_ID_list:
         #メッセージIDを取得
         id = msg['id']
@@ -78,13 +98,14 @@ def GetAttachments(msg_ID_list):
                 #https://note.nkmk.me/python-file-io-open-with/ ←参考
                 with open(path,"wb") as f:
                     f.write(file_data)
-
         except KeyError: 
             continue
 GetAttachments(msg_ID_list)
 
-"""添付ファイルをラベル名のフォルダへ振り分ける"""
-def SortAttachments(msg_ID_list):
+def LabelId_AttachmentId(msg_ID_list):
+    """メッセージのlabelID、attachmentIdを取得"""
+    """{'label_ID':'attachment_ID'}"""
+    labelId_attachmentId_dict = {}
     for msg in msg_ID_list:
         #メッセージIDを取得
         id = msg['id']
@@ -96,52 +117,15 @@ def SortAttachments(msg_ID_list):
             if data['labelIds']:
                 #"labelIDs"が存在するファイルに対し、labelIDを取得
                 label_ID =  [i.replace("Label_","") for i in data['labelIds'] if "Label_" in i][0]
-                print("右がlabel_id→",label_ID)
-                # # 添付ファイルの本体を取得
-                # attachment = messages.attachments().get(userId='me',messageId = id, id=attachment_ID).execute()
-                # # 添付ファイルのコードを変換
-                # file_data = base64.urlsafe_b64decode(attachment['data'])
-                # #path名＝添付ファイル名とする
-                # print(f"添付ファイル名：{data['payload']['parts'][1]['filename']}")
-                # path = data['payload']['parts'][1]['filename']
-                # # open(path,"wb") as f: のpathはstrで./内にそのファイルが無くてもpath名で新規作成される。
-                # #https://note.nkmk.me/python-file-io-open-with/ ←参考
-                # with open(path,"wb") as f:
-                #     f.write(file_data)
+                print("右がlabel_ID→",label_ID)
+                # attachmentIdを取得
+                attachment_ID = data['payload']['parts'][1]['body']['attachmentId']
+                # labelId_attachmentId_dictに上記二つを格納
+                labelId_attachmentId_dict[label_ID] = attachment_ID
+        except Exception as e: 
+            print("labelId_attachmentId_dict取得する上で『{}』のエラー!".format(e))
+            pass
+    pprint(labelId_attachmentId_dict)
+    return labelId_attachmentId_dict
+LabelId_AttachmentId(msg_ID_list)
 
-        except KeyError:
-            continue
-
-SortAttachments(msg_ID_list)
-
-
-
-"""ユーザーのメールボックスからラベルのリストを取得する"""
-def ListLabels(service, user_id):
-    """ユーザーのメールボックス内のすべてのラベルのリストを取得します。
-        args：
-            service：承認済みのGmail APIサービスインスタンス。
-            user_id：ユーザーのメールアドレス。 特別な価値'me'
-            認証されたユーザーを示すために使用できます。
-        Returns：
-        ユーザーのメールボックス内のすべてのラベルのリスト。
-    """
-    try:
-        response = service.users().labels().list(userId=user_id).execute()
-        print("以下response")
-        pprint(response)
-        labels = response['labels']
-        print("以下labels")
-        pprint(labels)
-        """対象となる"""
-        labels_name_list = [label['name'].replace('インバータ（csvファイル）/', '') for label in labels if "インバータ（csvファイル）/" in label['name']]
-        # print(labels_name_list)
-        
-    except :
-        print("ラベルリスト取得する上で何らかのエラー")
-        pass
-
-ListLabels(service,'me')
-
-
-get_dir_name()
