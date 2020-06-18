@@ -32,16 +32,31 @@ def gmail_get_service():
 # ------------------------------------
 # GmailのAPIが使えるようにする
 service = gmail_get_service()
-
 # メッセージを扱うAPI
 messages = service.users().messages()
 # 自分のメッセージ一覧を"maxResults"件得る
 number_of_requests = int(input("取得したいメールの件数>"))
 msg_list = messages.list(userId='me', maxResults=number_of_requests).execute()
-pprint(msg_list)
+# pprint(msg_list)
 #上記のメッセージID一覧を取得（idとthreadIdをリスト内の辞書として）
 msg_ID_list = msg_list['messages']
 pprint(msg_ID_list)
+
+# def MessageDataDict(number_of_requests):
+#     """メッセージIDとメッセージ本体の辞書を作成する"""
+#     """{'id':'data'}"""
+#     message_data_dict = {}
+#     msg_list = messages.list(userId='me', maxResults=number_of_requests).execute()
+#     msg_ID_list = msg_list['messages']
+#     for msg in msg_ID_list:
+#         #メッセージIDを取得
+#         id = msg['id']
+#         # メッセージの本体を取得する
+#         data = messages.get(userId='me', id=id).execute()
+#         message_data_dict[id] = data
+#     return message_data_dict
+# MessageDataDict = MessageDataDict(number_of_requests)
+
 
 def get_dir_name():
     """同フォルダ内のフォルダ名をリストで取得"""
@@ -50,28 +65,26 @@ def get_dir_name():
     dir_name = [f for f in files if os.path.isdir(os.path.join(path, f))]
     print(dir_name)
     return dir_name
-get_dir_name()
+Dir_list = get_dir_name()
 
 
 def LabelsDict(service, user_id):
     """ユーザーのメールボックスから対象となるlabelIDとラベル名の辞書を作成する"""
-    """{'labelID':'ラベル名'}"""
-    labels_dict = {}
+    """{'labelID':'labelname'}"""
+    labelsdict = {}
     try:
         label_objects = service.users().labels().list(userId=user_id).execute()
         labels = label_objects['labels']
-        print("以下labels")
-        pprint(labels)
         """対象となるlabelの選定"""
         for label in labels:
             if 'インバータ（csvファイル）/' in label['name']:
-                labels_dict[label['id'].replace("Label_","") ] = label['name'].replace('インバータ（csvファイル）/','')
-        pprint(labels_dict)
-        return labels_dict
+                labelsdict[label['id'].replace("Label_","") ] = label['name'].replace('インバータ（csvファイル）/','')
+        return labelsdict
     except Exception as e: 
-        print("labels_dict取得する上で『{}』のエラー!".format(e))
+        print("labelsdict取得する上で『{}』のエラー!".format(e))
         pass
-LabelsDict(service,'me')
+LabelsDict = LabelsDict(service,'me')
+pprint(LabelsDict)
 
 def GetAttachments(msg_ID_list):
     """添付ファイルを取得"""
@@ -80,9 +93,6 @@ def GetAttachments(msg_ID_list):
         id = msg['id']
         # メッセージの本体を取得する
         data = messages.get(userId='me', id=id).execute()
-        print("以下data")
-        pprint(data)
-        
         try:
             if data['payload']['parts'][1]['body']['attachmentId']:
                 #添付ファイルが存在するファイルに対し、attachmentIDを取得
@@ -105,27 +115,45 @@ GetAttachments(msg_ID_list)
 def LabelId_AttachmentId(msg_ID_list):
     """メッセージのlabelID、attachmentIdを取得"""
     """{'label_ID':'attachment_ID'}"""
-    labelId_attachmentId_dict = {}
+    LabelId_AttachmentId_dict = {}
     for msg in msg_ID_list:
         #メッセージIDを取得
         id = msg['id']
         # メッセージの本体を取得する
         data = messages.get(userId='me', id=id).execute()
-        pprint(data)
         try:
             #メッセージ本体に"labalIds"キーが存在した場合、
             if data['labelIds']:
                 #"labelIDs"が存在するファイルに対し、labelIDを取得
                 label_ID =  [i.replace("Label_","") for i in data['labelIds'] if "Label_" in i][0]
-                print("右がlabel_ID→",label_ID)
                 # attachmentIdを取得
                 attachment_ID = data['payload']['parts'][1]['body']['attachmentId']
-                # labelId_attachmentId_dictに上記二つを格納
-                labelId_attachmentId_dict[label_ID] = attachment_ID
+                # LabelId_AttachmentId_dictに上記二つを格納
+                LabelId_AttachmentId_dict[label_ID] = attachment_ID
         except Exception as e: 
-            print("labelId_attachmentId_dict取得する上で『{}』のエラー!".format(e))
+            print("LabelId_AttachmentId_dict取得する上で『{}』のエラー!".format(e))
             pass
-    pprint(labelId_attachmentId_dict)
-    return labelId_attachmentId_dict
-LabelId_AttachmentId(msg_ID_list)
+    return LabelId_AttachmentId_dict
+LabelId_AttachmentId = LabelId_AttachmentId(msg_ID_list)
+pprint(LabelId_AttachmentId)
 
+def Labelname_AttachmentId():
+    """labelnameとattachmentIdの辞書を取得"""
+    """{'Labelname':'attachment_ID'}"""
+    Labelname_AttachmentId_dict = {}
+    for label_ID,attachment_ID in LabelId_AttachmentId.items():
+        for labelID,labelname in LabelsDict.items():
+            if labelID in label_ID:
+                Labelname_AttachmentId_dict[LabelsDict[labelID]] = LabelId_AttachmentId[label_ID]
+    return Labelname_AttachmentId_dict
+Labelname_AttachmentId = Labelname_AttachmentId()
+pprint(Labelname_AttachmentId)
+
+def Sort_Attachment():
+    for Labelname,attachment_ID in Labelname_AttachmentId.items():
+        os.makedirs('./{}/date'.format(Labelname),exist_ok=True)
+        # 添付ファイルの本体を取得
+
+
+
+Sort_Attachment()
