@@ -132,3 +132,4 @@ def Sort_Attachment(MessageDataDict):
             print("Sort_Attachmentで添付ファイルを振り分ける上で『{}』のエラー!".format(e))
             continue
 Sort_Attachment(MessageDataDict)
+
