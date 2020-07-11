@@ -1,5 +1,5 @@
 import openpyxl
-from datetime import date
+from datetime import date,datetime
 from glob import glob
 import os
 import pandas as pd
@@ -27,7 +27,7 @@ def get_before_ws():
                     d = date_ #date_が最新ならdを更新していく
                     index = ind #それと同時にindexも更新していく
     before_sheet = wb.worksheets[index] #直近のワークシートをbefore_sheetとしてしゅとく
-    print(d,before_sheet)
+    # print(d,before_sheet)
     return before_sheet
 
 """機械台数の取得"""
@@ -39,27 +39,27 @@ def get_count():
             counter += 1
         else:
             break
-    return counter
+    count = int(counter / 2)
+    return count
 
 """新シートの作成"""
 def create_new_ws():
     wb.copy_worksheet(before_sheet) #前回シートのコピー
-    d_str = day_arg.strftime("%y.%m.%d") #シート名とする日付の文字列化
-    print(d_str)
+    d_str = latest_date.strftime("%y.%m.%d") #シート名とする日付の文字列化
     wb.worksheets[-1].title = d_str #シート名を日付に変更
     new_sheet = wb.worksheets[-1]
-    return new_sheet #新シートのオブジェクトを取得
+    return new_sheet #新シートのオブジェクトとして返す
 
 """前回シートの必要値を取得"""
 def get_before_number():
     cc = before_sheet[criteria_cell]
     before_kwh = [cc.offset(row=0,column=c*2).value for c in range(count)]
     before_h = [cc.offset(row=0,column=c*2+1).value for c in range(count)]
-    print("前回シートの値",[before_h,before_kwh])
+    # print("前回シートの値",[before_h,before_kwh])
     return [before_h,before_kwh]
   
 
-"""CSVから必要データを取得"""
+"""CSVから値と直近日付を取得"""
 def get_csv_df(d):
     file_list = glob("./projects/{}/data/*csv".format(d)) #CSVが入っているフォルダ内のCSVファイル名をリストで取得
     counter = 0
@@ -73,16 +73,16 @@ def get_csv_df(d):
                 file_name = name
         except Exception as e:
             print("ファイルの日付を抽出する上で『{}』のエラー".format(e))
-    print("--------------")
     df = pd.read_csv("./projects/{}/data/{}".format(d,file_name),encoding='cp932',
     usecols=lambda x : x not in ['Date','Time']) #日時を除外してデータフレームを作成
     df_tail = df.tail(1) #データフレームの末行を取得
-    return df_tail
+    latest_date = datetime.strptime(str(counter),"%y%m%d")
+    return df_tail,latest_date
 
 """新シートへの書き込み"""
 def writting():
     new_sheet['B4'].value = "={}!B5".format(before_sheet.title) #前回検針日の変更
-    new_sheet['B5'].value = day_arg
+    new_sheet['B5'].value = latest_date
     for cells in new_sheet.rows: #新しいシートの行で検索
         for cell in cells:
             if cell.value ==("積算\n運転時間計\n前回値" or "積算\n運転時間計\n初回値") :
@@ -98,9 +98,11 @@ def writting():
     cc = new_sheet[criteria_cell]
     counter = 0
     for i in df_list[0]:
-        cc.offset(row=0,column=counter).value = i
-        counter += 1
-    # wb.save("./data/test.xlsx") #保存
+        try:
+            cc.offset(row=0,column=counter).value = float(i)
+            counter += 1
+        except Exception as e:
+            print("ファイルの日付を抽出する上で『{}』のエラー".format(e))
 
 dir_list = get_dir_name() #projectsフォルダ内にあるフォルダをリストへ
 for d in dir_list:
@@ -112,12 +114,11 @@ for d in dir_list:
         continue
     ws_name_l = wb.sheetnames #シート名をリストとして取得
     criteria_cell = "s5" #積算値記載の基準となるセル番地＝機械台数カウントの基準となるセル番地
-    day_arg = date.today() #取得日。一旦本日とする。
+    csv_df,latest_date = get_csv_df(d) #CSVの各値をdfとして取得し、直近日付データも取得
     before_sheet = get_before_ws() #前回シート取得
     count = get_count() #機械台数カウント
-    new_sheet = create_new_ws() #新シートの作成
+    new_sheet = create_new_ws() #新シートオブジェクトを作成
     before_list = get_before_number() #前回シートの必要値を取得しリストへ
-    csv_df = get_csv_df(d) #CSVの必要部分データをdfとして取得
     writting() #新シートへの書き込み
     wb.save(filename_list[0]) #保存
 

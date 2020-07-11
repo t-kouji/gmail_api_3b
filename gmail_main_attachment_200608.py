@@ -71,7 +71,8 @@ def LabelsDict(service, user_id):
         print("labelsdict取得する上で『{}』のエラー!".format(e))
         pass
 LabelsDict = LabelsDict(service,'me')
-# pprint(LabelsDict)
+pprint(LabelsDict)
+print("-")
 
 def LabelId_AttachmentId(MessageDataDict):
     """メッセージのlabelID、attachmentIdを取得"""
@@ -104,12 +105,14 @@ def Labelname_AttachmentId():
                 Labelname_AttachmentId_dict[LabelsDict[labelID]] = LabelId_AttachmentId[label_ID]
     return Labelname_AttachmentId_dict
 Labelname_AttachmentId = Labelname_AttachmentId()
-# pprint(Labelname_AttachmentId)
+pprint(Labelname_AttachmentId)
+print("--")
 
 def Sort_Attachment(MessageDataDict):
     """添付ファイルを各フォルダのdataフォルダ内に格納"""
     for Labelname,attachment_ID in Labelname_AttachmentId.items():
-        """フォルダが存在しない場合は名前を指定してフォルダを作成"""
+        """フォルダが存在しない場合は名前を指定してフォルダを作成。
+        第二引数にexist_ok=Trueとすると既に末端ディレクトリが存在している場合もエラーが発生しない"""
         os.makedirs('./projects/{}/data'.format(Labelname),exist_ok=True)
         """添付ファイル本体の取得"""
         try:
