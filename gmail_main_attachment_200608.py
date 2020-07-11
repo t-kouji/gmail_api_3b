@@ -71,12 +71,13 @@ def LabelsDict(service, user_id):
         print("labelsdict取得する上で『{}』のエラー!".format(e))
         pass
 LabelsDict = LabelsDict(service,'me')
-pprint(LabelsDict)
-print("-")
+# pprint(LabelsDict)
 
 def LabelId_AttachmentId(MessageDataDict):
     """メッセージのlabelID、attachmentIdを取得"""
     """{'label_ID':'attachment_ID'}"""
+    """但し、最新のメールからforループを回すので、同じ案件でダブると最新のが上書きされて古いメールが
+    残ってしまうのでそうならないようにする"""
     LabelId_AttachmentId_dict = {}
     for id,data in MessageDataDict.items():
         try:
@@ -87,7 +88,9 @@ def LabelId_AttachmentId(MessageDataDict):
                 # attachmentIdを取得
                 attachment_ID = data['payload']['parts'][1]['body']['attachmentId']
                 # LabelId_AttachmentId_dictに上記二つを格納
-                LabelId_AttachmentId_dict[label_ID] = attachment_ID
+                # 最新メールのみが反映されるようにif not inで条件付けする。
+                if  label_ID not in LabelId_AttachmentId_dict:
+                    LabelId_AttachmentId_dict[label_ID] = attachment_ID
         except Exception as e: 
             print("LabelId_AttachmentId_dict取得する上で『{}』のエラー!".format(e))
             pass
@@ -105,8 +108,7 @@ def Labelname_AttachmentId():
                 Labelname_AttachmentId_dict[LabelsDict[labelID]] = LabelId_AttachmentId[label_ID]
     return Labelname_AttachmentId_dict
 Labelname_AttachmentId = Labelname_AttachmentId()
-pprint(Labelname_AttachmentId)
-print("--")
+# pprint(Labelname_AttachmentId)
 
 def Sort_Attachment(MessageDataDict):
     """添付ファイルを各フォルダのdataフォルダ内に格納"""

@@ -121,5 +121,3 @@ for d in dir_list:
     before_list = get_before_number() #前回シートの必要値を取得しリストへ
     writting() #新シートへの書き込み
     wb.save(filename_list[0]) #保存
-
-
