@@ -60,20 +60,20 @@ def get_before_number():
   
 
 """CSVから値と直近日付を取得"""
-def get_csv_df(d):
-    file_list = glob("./projects/{}/data/*csv".format(d)) #CSVが入っているフォルダ内のCSVファイル名をリストで取得
+def get_df_tail(dir_name):
+    csv_list = glob("./projects/{}/data/*csv".format(dir_name)) #CSVが入っているフォルダ内dataフォルダ内のCSVファイル名をリストで取得
     counter = 0
-    file_name = 0
-    for n in file_list:
+    csv_name = 0
+    for n in csv_list:
         try:
-            name = os.path.basename(n) #ファイル名取得
-            c = int(name.rsplit('(')[1].split('_')[0]) #ファイル名の日付部分をintとして抽出
+            name = os.path.basename(n) #csvファイル名取得
+            c = int(name.rsplit('(')[1].split('_')[0]) #csvファイル名の日付部分をintとして抽出
             if c > counter: #日付が最新のものを選定
                 counter = c
-                file_name = name
+                csv_name = name
         except Exception as e:
-            print("ファイルの日付を抽出する上で『{}』のエラー".format(e))
-    df = pd.read_csv("./projects/{}/data/{}".format(d,file_name),encoding='cp932',
+            print("{}フォルダで最新日付のcsvファイルを抽出する上で『{}』のエラー".format(dir_name,e))
+    df = pd.read_csv("./projects/{}/data/{}".format(dir_name,csv_name),encoding='cp932',
     usecols=lambda x : x not in ['Date','Time']) #日時を除外してデータフレームを作成
     df_tail = df.tail(1) #データフレームの末行を取得
     latest_date = datetime.strptime(str(counter),"%y%m%d")
@@ -93,7 +93,7 @@ def writting():
                 for c in range(count):                    
                     cell.offset(row=c+3,column=0).value = before_list[1][c] #上記文字列から下にc番目のセルへ値を書き込む
                 # break
-    df_list = csv_df.values.tolist() #データフレームをリストへ変換
+    df_list = df_tail.values.tolist() #データフレームをリストへ変換
     # print(df_list)
     cc = new_sheet[criteria_cell]
     counter = 0
@@ -102,22 +102,23 @@ def writting():
             cc.offset(row=0,column=counter).value = float(i)
             counter += 1
         except Exception as e:
-            print("ファイルの日付を抽出する上で『{}』のエラー".format(e))
+            print("{}ファイルの新シートに書き込みする上で『{}』のエラー".format(filename,e))
 
 dir_list = get_dir_name() #projectsフォルダ内にあるフォルダをリストへ
-for d in dir_list:
-    filename_list = glob('./projects/{}/*.xlsx'.format(d)) #projectsフォルダ内の各フォルダにあるxlsxファイル名を取得しリストへ
+for dir_name in dir_list:
+    filename_list = glob('./projects/{}/*.xlsx'.format(dir_name)) #projectsフォルダ内の各フォルダにあるxlsxファイル名を取得しリストへ
     try :
-        wb = openpyxl.load_workbook(filename_list[0])
+        filename = filename_list[0] #globで取得できるものはリストなので変数化。
+        wb = openpyxl.load_workbook(filename)
     except IndexError:
-        print("{}フォルダに効果検証Excelフォーマットがありますか？".format(d))
+        print("{}フォルダに効果検証Excelフォーマットがありますか？".format(dir_name))
         continue
     ws_name_l = wb.sheetnames #シート名をリストとして取得
     criteria_cell = "s5" #積算値記載の基準となるセル番地＝機械台数カウントの基準となるセル番地
-    csv_df,latest_date = get_csv_df(d) #CSVの各値をdfとして取得し、直近日付データも取得
+    df_tail,latest_date = get_df_tail(dir_name) #CSVの各値をdfとして取得し、直近日付データも取得
     before_sheet = get_before_ws() #前回シート取得
     count = get_count() #機械台数カウント
     new_sheet = create_new_ws() #新シートオブジェクトを作成
     before_list = get_before_number() #前回シートの必要値を取得しリストへ
     writting() #新シートへの書き込み
-    wb.save(filename_list[0]) #保存
+    wb.save(filename) #保存
