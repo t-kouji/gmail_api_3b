@@ -14,21 +14,23 @@ def get_dir_name():
 
 """前回シートオブジェクトを取得"""
 def get_before_ws():
-    d = date(2000,1,1) #基準となる日付
+    date_ = date(2000,1,1) #基準となる日付
     index = 0
-    for ind,sheet in enumerate(ws_name_l):
+    for ind,sheet in enumerate(ws_name_l): #シート名一覧をforループしインデックスを取得
         for cell in wb[sheet]['A']: #各シートのA列のセルを上から順番に検索
             if cell.value == '今回検針日：': #もし'今回検針日：'の文字列があれば・・・
                 try:
-                    date_ = cell.offset(row=0,column=1).value.date() #右となりのセルを日付データとして取得
+                    d = cell.offset(row=0,column=1).value.date() #右となりのセルを日付データとして取得
                 except AttributeError:
                     pass
-                if date_ > d:
-                    d = date_ #date_が最新ならdを更新していく
+                if d > date_:
+                    date_ = d #dが最新ならdate_を更新していく
                     index = ind #それと同時にindexも更新していく
-    before_sheet = wb.worksheets[index] #直近のワークシートをbefore_sheetとしてしゅとく
+            break #'今回検針日'の文字列発見し、上記日付更新できたらforループの2ネスト目をbreak
+    before_sheet = wb.worksheets[index] #直近のワークシートをbefore_sheetとして取得
+    before_date = date_ #日付をbefore_dateとして取得
     # print(d,before_sheet)
-    return before_sheet
+    return before_sheet,before_date
 
 """機械台数の取得"""
 def get_count():
@@ -106,17 +108,21 @@ def writting():
 
 dir_list = get_dir_name() #projectsフォルダ内にあるフォルダをリストへ
 for dir_name in dir_list:
-    filename_list = glob('./projects/{}/*.xlsx'.format(dir_name)) #projectsフォルダ内の各フォルダにあるxlsxファイル名を取得しリストへ
+    filename_list = glob('./projects/{}/*.xlsx'.format(dir_name)) #projectsフォルダ内の各フォルダにあるxlsxファイル名を取得しリストへ。
+    #注）各フォルダに置く効果検証xlsxファイルは１つでないといけない。
     try :
-        filename = filename_list[0] #globで取得できるものはリストなので変数化。
+        filename = filename_list[0] #globで取得できるものはリストなので変数化。xlsxファイルは一個という前提で[0]。
         wb = openpyxl.load_workbook(filename)
     except IndexError:
         print("{}フォルダに効果検証Excelフォーマットがありますか？".format(dir_name))
         continue
     ws_name_l = wb.sheetnames #シート名をリストとして取得
     criteria_cell = "s5" #積算値記載の基準となるセル番地＝機械台数カウントの基準となるセル番地
-    df_tail,latest_date = get_df_tail(dir_name) #CSVの各値をdfとして取得し、直近日付データも取得
-    before_sheet = get_before_ws() #前回シート取得
+    df_tail,latest_date = get_df_tail(dir_name) #CSVの末尾の各値をdfと、近日付データを取得
+    before_sheet,before_date = get_before_ws() #前回シート取得と、前回日付データを取得
+    if latest_date == before_sheet:
+        print("{}の前回の検証日と今回のcsvの日付が同じではありませんか？",format(filename))
+        continue
     count = get_count() #機械台数カウント
     new_sheet = create_new_ws() #新シートオブジェクトを作成
     before_list = get_before_number() #前回シートの必要値を取得しリストへ
