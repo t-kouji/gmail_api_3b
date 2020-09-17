@@ -9,7 +9,6 @@ def get_dir_name():
     path = "./projects"
     files = os.listdir(path)
     dir_name = [f for f in files if os.path.isdir(os.path.join(path, f))]
-    # print(dir_name)
     return dir_name
 
 """前回シートオブジェクトを取得"""
@@ -21,15 +20,14 @@ def get_before_ws():
             if cell.value == '今回検針日：': #もし'今回検針日：'の文字列があれば・・・
                 try:
                     d = cell.offset(row=0,column=1).value.date() #右となりのセルを日付データとして取得
-                except AttributeError:
-                    pass
+                except AttributeError as e:
+                    print("{}ファイルの今回検針日の取得に際し『{}』のエラー".format(filename,e))
                 if d > date_:
                     date_ = d #dが最新ならdate_を更新していく
                     index = ind #それと同時にindexも更新していく
-            break #'今回検針日'の文字列発見し、上記日付更新できたらforループの2ネスト目をbreak
+                break #'今回検針日'の文字列発見し、上記日付更新できたらforループの2ネスト目をbreak
     before_sheet = wb.worksheets[index] #直近のワークシートをbefore_sheetとして取得
     before_date = date_ #日付をbefore_dateとして取得
-    # print(d,before_sheet)
     return before_sheet,before_date
 
 """機械台数の取得"""
@@ -78,14 +76,14 @@ def get_df_tail(dir_name):
     df = pd.read_csv("./projects/{}/data/{}".format(dir_name,csv_name),encoding='cp932',
     usecols=lambda x : x not in ['Date','Time']) #日時を除外してデータフレームを作成
     df_tail = df.tail(1) #データフレームの末行を取得
-    latest_date = datetime.strptime(str(counter),"%y%m%d")
+    latest_date = datetime.strptime(str(counter),"%y%m%d").date() #CSVの最新日付を取得（ファイル名より）。datetime → date型へ
     return df_tail,latest_date
 
 """新シートへの書き込み"""
 def writting():
     new_sheet['B4'].value = "={}!B5".format(before_sheet.title) #前回検針日の変更
-    new_sheet['B5'].value = latest_date
-    for cells in new_sheet.rows: #新しいシートの行で検索
+    new_sheet['B5'].value = latest_date #今回検針日を変更
+    for cells in new_sheet.rows: #新しいシートの行で検索。rowsはopenxlのメソッドでtuple型を返す。
         for cell in cells:
             if cell.value ==("積算\n運転時間計\n前回値" or "積算\n運転時間計\n初回値") :
                 for c in range(count):                    
@@ -96,7 +94,6 @@ def writting():
                     cell.offset(row=c+3,column=0).value = before_list[1][c] #上記文字列から下にc番目のセルへ値を書き込む
                 # break
     df_list = df_tail.values.tolist() #データフレームをリストへ変換
-    # print(df_list)
     cc = new_sheet[criteria_cell]
     counter = 0
     for i in df_list[0]:
@@ -120,8 +117,8 @@ for dir_name in dir_list:
     criteria_cell = "s5" #積算値記載の基準となるセル番地＝機械台数カウントの基準となるセル番地
     df_tail,latest_date = get_df_tail(dir_name) #CSVの末尾の各値をdfと、近日付データを取得
     before_sheet,before_date = get_before_ws() #前回シート取得と、前回日付データを取得
-    if latest_date == before_sheet:
-        print("{}の前回の検証日と今回のcsvの日付が同じではありませんか？",format(filename))
+    if latest_date == before_date:
+        print("{}の前回の検証日と今回のcsvの日付が同じではありませんか？".format(filename))
         continue
     count = get_count() #機械台数カウント
     new_sheet = create_new_ws() #新シートオブジェクトを作成

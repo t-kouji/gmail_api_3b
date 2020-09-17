@@ -96,7 +96,7 @@ def LabelId_AttachmentId(MessageDataDict):
             pass
     return LabelId_AttachmentId_dict
 LabelId_AttachmentId = LabelId_AttachmentId(MessageDataDict)
-# pprint(LabelId_AttachmentId)
+#pprint(LabelId_AttachmentId)
 
 def Labelname_AttachmentId():
     """labelnameとattachmentIdの辞書を取得"""
@@ -108,7 +108,35 @@ def Labelname_AttachmentId():
                 Labelname_AttachmentId_dict[LabelsDict[labelID]] = LabelId_AttachmentId[label_ID]
     return Labelname_AttachmentId_dict
 Labelname_AttachmentId = Labelname_AttachmentId()
-# pprint(Labelname_AttachmentId)
+#pprint(Labelname_AttachmentId)
+
+# def Sort_Attachment(MessageDataDict):
+#     """添付ファイルを各フォルダのdataフォルダ内に格納"""
+#     for Labelname,attachment_ID in Labelname_AttachmentId.items():
+#         """フォルダが存在しない場合は名前を指定してフォルダを作成。
+#         第二引数にexist_ok=Trueとすると既に末端ディレクトリが存在している場合もエラーが発生しない"""
+#         os.makedirs('./projects/{}/data'.format(Labelname),exist_ok=True)
+#         """添付ファイル本体の取得"""
+#         try:
+#             for id,data in MessageDataDict.items():
+#                 #該当するattachment_IDだった場合
+#                 if data['payload']['parts'][1]['body']['attachmentId'] == attachment_ID:
+#                     """添付ファイルの本体を取得"""
+#                     attachment =  messages.attachments().get(userId='me',messageId = id, id=attachment_ID).execute()
+#                     """添付ファイルコードの変更"""
+#                     file_data = base64.urlsafe_b64decode(attachment['data'])
+#                     """添付ファイル名の取得"""
+#                     file_name = data['payload']['parts'][1]['filename']
+#                     print(f"添付ファイル名：{file_name}")
+#                     path = './projects/{}/data/{}'.format(Labelname,file_name) 
+#                     with open(path,"wb") as f:
+#                         f.write(file_data)
+#                     # open(path,"wb") as f: のpathはstrで./内にそのファイルが無くてもpath名で新規作成される。
+#                     # https://note.nkmk.me/python-file-io-open-with/ ←参考
+#         except Exception as e: 
+#             print("Sort_Attachmentで添付ファイルを振り分ける上で『{}』のエラー!".format(e))
+#             continue
+# Sort_Attachment(MessageDataDict)
 
 def Sort_Attachment(MessageDataDict):
     """添付ファイルを各フォルダのdataフォルダ内に格納"""
@@ -117,9 +145,10 @@ def Sort_Attachment(MessageDataDict):
         第二引数にexist_ok=Trueとすると既に末端ディレクトリが存在している場合もエラーが発生しない"""
         os.makedirs('./projects/{}/data'.format(Labelname),exist_ok=True)
         """添付ファイル本体の取得"""
-        try:
-            for id,data in MessageDataDict.items():
-                #該当するattachment_IDだった場合
+        for id,data in MessageDataDict.items():
+            # try:
+            #該当するattachment_IDだった場合
+            try:
                 if data['payload']['parts'][1]['body']['attachmentId'] == attachment_ID:
                     """添付ファイルの本体を取得"""
                     attachment =  messages.attachments().get(userId='me',messageId = id, id=attachment_ID).execute()
@@ -133,8 +162,7 @@ def Sort_Attachment(MessageDataDict):
                         f.write(file_data)
                     # open(path,"wb") as f: のpathはstrで./内にそのファイルが無くてもpath名で新規作成される。
                     # https://note.nkmk.me/python-file-io-open-with/ ←参考
-        except Exception as e: 
-            print("Sort_Attachmentで添付ファイルを振り分ける上で『{}』のエラー!".format(e))
-            continue
+            except Exception as e: 
+                print("Sort_Attachmentで添付ファイルを振り分ける上で『{}』のエラー!".format(e))
+                
 Sort_Attachment(MessageDataDict)
-
