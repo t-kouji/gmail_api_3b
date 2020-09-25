@@ -85,8 +85,8 @@ def get_df(dir_name):
 """スミルノフ－グラブス検定を用いdfから外れ値を除去した後に列毎の最大値をリストで取得"""
 def get_max_list(df_, alpha=0.01):
     max_list = [] 
-    try:
-        for columun_name,item in df_.iteritems(): #iteritems()メソッドを使うと、1列ずつコラム名（列名）とその列のデータ（pandas.Series型）を取得できる。
+    for columun_name,item in df_.iteritems(): #iteritems()メソッドを使うと、1列ずつコラム名（列名）とその列のデータ（pandas.Series型）を取得できる。
+        try:
             x, o = list(item), []
             while True:
                 n = len(x)
@@ -99,11 +99,13 @@ def get_max_list(df_, alpha=0.01):
                 if tau_far < tau: break
                 o.append(x.pop(i_far))
             max_list.append(np.array(x).max()) #外れ値除外したseriesの中の最大値をmax_listへ追加
-            # if not np.array(o).size == 0:
-            #     print("外れ値と判断し除外した数字は ",np.array(o))
-        return (max_list)
-    except Exception as e:
-        print("{}maxリストを作成する際に『{}』のエラー".format(filename,e))
+        except Exception as e:
+            print("{}のエラー".format(e))
+            max_list.append(item.max())
+        if not np.array(o).size == 0:
+            print("外れ値と判断し除外した数字は ",np.array(o))
+    return (max_list)
+
 
 """新シートへの書き込み"""
 def writting():
