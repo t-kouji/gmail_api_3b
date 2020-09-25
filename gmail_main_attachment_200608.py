@@ -115,7 +115,8 @@ def Sort_Attachment(MessageDataDict):
     for Labelname,attachment_ID in Labelname_AttachmentId.items():
         """フォルダが存在しない場合は名前を指定してフォルダを作成。
         第二引数にexist_ok=Trueとすると既に末端ディレクトリが存在している場合もエラーが発生しない"""
-        os.makedirs('./projects/{}/data'.format(Labelname),exist_ok=True)
+        # os.makedirs('./projects/{}/data'.format(Labelname),exist_ok=True)
+        os.makedirs('/home/tanaka/Dropbox_projects/{}/data'.format(Labelname),exist_ok=True)
         """添付ファイル本体の取得"""
         for id,data in MessageDataDict.items():
             #該当するattachment_IDだった場合
@@ -128,7 +129,8 @@ def Sort_Attachment(MessageDataDict):
                     """添付ファイル名の取得"""
                     file_name = data['payload']['parts'][1]['filename']
                     print(f"添付ファイル名：{file_name}")
-                    path = './projects/{}/data/{}'.format(Labelname,file_name) 
+                    # path = './projects/{}/data/{}'.format(Labelname,file_name) 
+                    path = '/home/tanaka/Dropbox_projects/{}/data/{}'.format(Labelname,file_name) 
                     with open(path,"wb") as f:
                         f.write(file_data)
                     # open(path,"wb") as f: のpathはstrで./内にそのファイルが無くてもpath名で新規作成される。

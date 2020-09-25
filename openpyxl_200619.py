@@ -8,7 +8,8 @@ import scipy.stats as stats
 
 """同フォルダ内のフォルダ名をリストで取得"""
 def get_dir_name():
-    path = "./projects"
+    # path = "./projects"
+    path = "/home/tanaka/Dropbox_projects"
     files = os.listdir(path)
     dir_name = [f for f in files if os.path.isdir(os.path.join(path, f))]
     return dir_name
@@ -63,7 +64,8 @@ def get_before_number():
 
 """CSVから値と直近日付を取得"""
 def get_df(dir_name):
-    csv_list = glob("./projects/{}/data/*csv".format(dir_name)) #CSVが入っているフォルダ内dataフォルダ内のCSVファイル名をリストで取得
+    # csv_list = glob("./projects/{}/data/*csv".format(dir_name)) #CSVが入っているフォルダ内dataフォルダ内のCSVファイル名をリストで取得
+    csv_list = glob("/home/tanaka/Dropbox_projects/{}/data/*csv".format(dir_name)) #CSVが入っているフォルダ内dataフォルダ内のCSVファイル名をリストで取得
     counter = 0
     csv_name = 0
     for n in csv_list:
@@ -75,7 +77,9 @@ def get_df(dir_name):
                 csv_name = name
         except Exception as e:
             print("{}フォルダで最新日付のcsvファイルを抽出する上で『{}』のエラー".format(dir_name,e))
-    df = pd.read_csv("./projects/{}/data/{}".format(dir_name,csv_name),encoding='cp932',
+    # df = pd.read_csv("./projects/{}/data/{}".format(dir_name,csv_name),encoding='cp932',
+    # usecols=lambda x : x not in ['Date','Time'],skiprows=[1,2,3,4,5,6],na_values='-') #日時を除外してデータフレームを作成
+    df = pd.read_csv("/home/tanaka/Dropbox_projects/{}/data/{}".format(dir_name,csv_name),encoding='cp932',
     usecols=lambda x : x not in ['Date','Time'],skiprows=[1,2,3,4,5,6],na_values='-') #日時を除外してデータフレームを作成
     median_df = df.median() #dfの中央値を取得。
     df = df.fillna(median_df) #欠損値を中央値に置き換える。
@@ -133,7 +137,8 @@ def writting():
 
 dir_list = get_dir_name() #projectsフォルダ内にあるフォルダをリストへ
 for dir_name in dir_list:
-    filename_list = glob('./projects/{}/*.xlsx'.format(dir_name)) #projectsフォルダ内の各フォルダにあるxlsxファイル名を取得しリストへ。
+    # filename_list = glob('./projects/{}/*.xlsx'.format(dir_name)) #projectsフォルダ内の各フォルダにあるxlsxファイル名を取得しリストへ。
+    filename_list = glob('/home/tanaka/Dropbox_projects/{}/*.xlsx'.format(dir_name)) #projectsフォルダ内の各フォルダにあるxlsxファイル名を取得しリストへ。
     #注）各フォルダに置く効果検証xlsxファイルは１つでないといけない。
     try :
         filename = filename_list[0] #globで取得できるものはリストなので変数化。xlsxファイルは一個という前提で[0]。
