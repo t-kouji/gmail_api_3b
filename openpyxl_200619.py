@@ -8,7 +8,6 @@ import scipy.stats as stats
 
 """同フォルダ内のフォルダ名をリストで取得"""
 def get_dir_name():
-    # path = "./projects"
     path = "/home/tanaka/Dropbox_projects"
     files = os.listdir(path)
     dir_name = [f for f in files if os.path.isdir(os.path.join(path, f))]
@@ -58,13 +57,11 @@ def get_before_number():
     cc = before_sheet[criteria_cell]
     before_kwh = [cc.offset(row=0,column=c*2).value for c in range(count)]
     before_h = [cc.offset(row=0,column=c*2+1).value for c in range(count)]
-    # print("前回シートの値",[before_h,before_kwh])
     return [before_h,before_kwh]
   
 
 """CSVから値と直近日付を取得"""
 def get_df(dir_name):
-    # csv_list = glob("./projects/{}/data/*csv".format(dir_name)) #CSVが入っているフォルダ内dataフォルダ内のCSVファイル名をリストで取得
     csv_list = glob("/home/tanaka/Dropbox_projects/{}/data/*csv".format(dir_name)) #CSVが入っているフォルダ内dataフォルダ内のCSVファイル名をリストで取得
     counter = 0
     csv_name = 0
@@ -77,8 +74,6 @@ def get_df(dir_name):
                 csv_name = name
         except Exception as e:
             print("{}フォルダで最新日付のcsvファイルを抽出する上で『{}』のエラー".format(dir_name,e))
-    # df = pd.read_csv("./projects/{}/data/{}".format(dir_name,csv_name),encoding='cp932',
-    # usecols=lambda x : x not in ['Date','Time'],skiprows=[1,2,3,4,5,6],na_values='-') #日時を除外してデータフレームを作成
     df = pd.read_csv("/home/tanaka/Dropbox_projects/{}/data/{}".format(dir_name,csv_name),encoding='cp932',
     usecols=lambda x : x not in ['Date','Time'],skiprows=[1,2,3,4,5,6],na_values='-') #日時を除外してデータフレームを作成
     median_df = df.median() #dfの中央値を取得。
@@ -87,7 +82,7 @@ def get_df(dir_name):
     return df,latest_date
 
 """スミルノフ－グラブス検定を用いdfから外れ値を除去した後に列毎の最大値をリストで取得"""
-def get_max_list(df_, alpha=0.01):
+def get_max_list(df_, filename,alpha=0.01):
     max_list = [] 
     for columun_name,item in df_.iteritems(): #iteritems()メソッドを使うと、1列ずつコラム名（列名）とその列のデータ（pandas.Series型）を取得できる。
         try:
@@ -104,10 +99,10 @@ def get_max_list(df_, alpha=0.01):
                 o.append(x.pop(i_far))
             max_list.append(np.array(x).max()) #外れ値除外したseriesの中の最大値をmax_listへ追加
         except Exception as e:
-            print("{}のエラー".format(e))
+            print("{}の外れ値除外処理で{}のエラー出たので{}列はmax値{}を採用".format(filename,e,columun_name,item.max()))
             max_list.append(item.max())
         if not np.array(o).size == 0:
-            print("外れ値と判断し除外した数字は ",np.array(o))
+            print("{}で外れ値と判断し除外した数字は{}列の{} ".format(filename,columun_name,np.array(o)))
     return (max_list)
 
 
@@ -120,24 +115,25 @@ def writting():
             if cell.value ==("積算\n運転時間計\n前回値" or "積算\n運転時間計\n初回値") :
                 for c in range(count):                    
                     cell.offset(row=c+3,column=0).value = before_list[0][c] #上記文字列から下にc番目のセルへ値を書き込む
-                # break
             if cell.value ==("積算\n電力量計\n前回値" or "積算\n電力量計\n初回値") :
                 for c in range(count):                    
                     cell.offset(row=c+3,column=0).value = before_list[1][c] #上記文字列から下にc番目のセルへ値を書き込む
-                # break
-    # df_list = df_tail.values.tolist() #データフレームをリストへ変換
+                
     cc = new_sheet[criteria_cell]
     counter = 0
     for i in max_list:
         try:
-            cc.offset(row=0,column=counter).value = float(i)
-            counter += 1
+            if str(i) == "nan": #もしcsvの列すべてが "-" だと "nan"となるので、その場合はもう過去のcsvファイル値を適用する必要あり。
+                counter += 1
+                print("{}ファイルの新シートに書き込みする上で数値が存在しない列あり！違う日のcsvファイルを使う必要あり！".format(filename))
+            else:
+                cc.offset(row=0,column=counter).value = float(i)
+                counter += 1
         except Exception as e:
             print("{}ファイルの新シートに書き込みする上で『{}』のエラー".format(filename,e))
 
 dir_list = get_dir_name() #projectsフォルダ内にあるフォルダをリストへ
 for dir_name in dir_list:
-    # filename_list = glob('./projects/{}/*.xlsx'.format(dir_name)) #projectsフォルダ内の各フォルダにあるxlsxファイル名を取得しリストへ。
     filename_list = glob('/home/tanaka/Dropbox_projects/{}/*.xlsx'.format(dir_name)) #projectsフォルダ内の各フォルダにあるxlsxファイル名を取得しリストへ。
     #注）各フォルダに置く効果検証xlsxファイルは１つでないといけない。
     try :
@@ -149,8 +145,8 @@ for dir_name in dir_list:
     ws_name_l = wb.sheetnames #シート名をリストとして取得
     criteria_cell = "s5" #積算値記載の基準となるセル番地＝機械台数カウントの基準となるセル番地
     df,latest_date = get_df(dir_name) #dfと、近日付データを取得
-    max_list = get_max_list(df) #スミルノフ－グラブス検定を用いdfから外れ値を除去した後に列毎の最大値をリストで取得
-    print(max_list)
+    max_list = get_max_list(df,filename) #スミルノフ－グラブス検定を用いdfから外れ値を除去した後に列毎の最大値をリストで取得
+    print("{}で新シートに書き込む数字は ".format(filename),max_list)
     before_sheet,before_date = get_before_ws() #前回シート取得と、前回日付データを取得
     if latest_date == before_date:
         print("{}の前回の検証日と今回のcsvの日付が同じではありませんか？".format(filename))
